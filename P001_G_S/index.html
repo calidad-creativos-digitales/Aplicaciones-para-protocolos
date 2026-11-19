@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Solicitud de certificado/s</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F5F4; --surface:#FFFFFF; --ink:#575756; --strong:#3A3A39; --muted:#8A8A88; --line:#DCDCDA;
+  --accent:#fe9405; --accent-ink:#2A2A29; --accent-soft:#FFF1DE;
+  --yellow:#fae300; --yellow-soft:#FFFBD4; --cyan:#1ab6d9; --cyan-soft:#E3F6FB;
+  --c:#fae300; --c-ink:#2A2A29; --c-tint:#FFFDE6;
+  --g:#1ab6d9; --g-ink:#10272D; --g-tint:#E8F7FB;
+  --s:#575756; --s-ink:#FFFFFF; --s-tint:#F1F1F0;
+  --edge:#A2A2A0; --shadow:0 1px 0 rgba(0,0,0,.04),0 10px 28px -14px rgba(0,0,0,.35);
+  color-scheme:light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#222221; --surface:#2D2D2C; --ink:#E4E4E2; --strong:#F6F6F4; --muted:#A6A6A3; --line:#454544;
+  --accent-soft:#4A3519; --yellow-soft:#3D3812; --cyan-soft:#16363F;
+  --c-tint:#36331A; --g-tint:#183840; --s:#B5B5B2; --s-ink:#222221; --s-tint:#323231;
+  --edge:#73736F; --shadow:0 10px 28px -14px rgba(0,0,0,.8); color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#222221; --surface:#2D2D2C; --ink:#E4E4E2; --strong:#F6F6F4; --muted:#A6A6A3; --line:#454544;
+  --accent-soft:#4A3519; --yellow-soft:#3D3812; --cyan-soft:#16363F;
+  --c-tint:#36331A; --g-tint:#183840; --s:#B5B5B2; --s-ink:#222221; --s-tint:#323231;
+  --edge:#73736F; --shadow:0 10px 28px -14px rgba(0,0,0,.8); color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{height:100%}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{display:flex;flex-direction:column;overflow:hidden;margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,"Segoe UI",sans-serif;font-size:16px;line-height:1.5}
+h1,h2,h3{font-family:"Sora","Atkinson Hyperlegible",system-ui,sans-serif;margin:0;line-height:1.2;color:var(--strong)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+header{flex:none;padding:14px 24px 12px;display:flex;gap:16px 24px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.title{border-left:5px solid var(--accent);padding-left:12px}
+.title h1{font-size:1.5rem;font-weight:700}
+.title p{margin:2px 0 0;color:var(--muted);font-size:.95rem}
+body.full .title p{display:none}
+.tools{display:flex;gap:8px;align-items:center}
+.tool{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:700;cursor:pointer}
+.tabs{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px;gap:4px}
+.tabs button{border:0;background:transparent;padding:8px 16px;border-radius:999px;cursor:pointer;font-weight:700;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+
+main{flex:1;min-height:0;display:flex;padding:0 24px 20px}
+.map-wrap{flex:1;min-width:0;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+.map{position:absolute;left:0;top:0;display:flex;transform-origin:0 0;transition:transform .65s cubic-bezier(.45,0,.2,1)}
+.lane-labels{width:44px;flex:none;background:var(--surface)}
+.lane-labels div{display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;transform:rotate(180deg);font-family:"Sora",sans-serif;font-weight:600;font-size:1rem;color:var(--strong);border-left:6px solid var(--lc)}
+.canvas{position:relative;flex:none}
+.canvas svg{position:absolute;inset:0}
+.lane-bg-c{fill:var(--c-tint)} .lane-bg-g{fill:var(--g-tint)} .lane-bg-s{fill:var(--s-tint)}
+.lane-sep{stroke:var(--line);stroke-width:1.5}
+.edge{fill:none;stroke:var(--edge);stroke-width:2;transition:stroke .3s,stroke-width .3s,opacity .3s}
+.edge.dash{stroke-dasharray:7 6}
+.edge.hl{stroke:var(--accent);stroke-width:3}
+.edge.trail{stroke:var(--accent);stroke-width:3.6}
+.dim .edge:not(.hl):not(.trail){opacity:.35}
+.elabel{font-size:13px;font-weight:700;fill:var(--muted);font-family:"Atkinson Hyperlegible",sans-serif}
+.mk-n{fill:var(--edge)} .mk-h,.mk-t{fill:var(--accent)}
+
+.node{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;border:0;padding:0;background:transparent;transition:opacity .3s}
+.node .box{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:6px 8px;border-radius:10px;background:var(--surface);border:2.5px solid var(--lane);font-size:16px;line-height:1.2;font-weight:700;color:var(--strong);box-shadow:var(--shadow);transition:transform .2s,box-shadow .2s}
+.node .num{position:absolute;top:-10px;left:8px;background:var(--lane);color:var(--lane-ink);font-size:12px;font-weight:700;padding:0 7px;border-radius:6px;line-height:19px}
+.node.dec .box{background:transparent;border:0;box-shadow:none;padding:0;font-size:13.5px;position:relative;isolation:isolate}
+.node.dec .box::before{content:"";position:absolute;inset:14px;transform:rotate(45deg);background:var(--surface);border:2.5px solid var(--lane);border-radius:6px;box-shadow:var(--shadow);z-index:-1}
+.node.dec .box span{position:relative;max-width:76px}
+.node.dec .num{left:-4px;top:6px}
+.node.ev .box{border-radius:50%;padding:0;font-size:21px}
+.node.ev.end .box{border-width:4px}
+.node.ev .cap{position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);width:124px;font-size:14px;line-height:1.2;font-weight:700;color:var(--muted)}
+.node.lane-c{--lane:var(--c);--lane-ink:var(--c-ink)} .node.lane-g{--lane:var(--g);--lane-ink:var(--g-ink)} .node.lane-s{--lane:var(--s);--lane-ink:var(--s-ink)}
+.node:hover .box{transform:translateY(-1px)}
+.node.sel .box{box-shadow:0 0 0 4px var(--accent-soft),0 0 0 7px var(--accent)}
+.node.dec.sel .box{box-shadow:none}
+.node.dec.sel .box::before{box-shadow:0 0 0 4px var(--accent-soft),0 0 0 7px var(--accent)}
+.node.visited .box{background:var(--accent-soft)}
+.node.dec.visited .box{background:transparent}
+.node.dec.visited .box::before{background:var(--accent-soft)}
+.dim .node:not(.sel):not(.rel):not(.visited){opacity:.4}
+.sim .node{cursor:default}
+.rocket{position:absolute;left:0;top:0;font-size:30px;pointer-events:none;z-index:4;transition:transform .7s cubic-bezier(.5,0,.2,1),opacity .3s;opacity:0}
+.rocket.on{opacity:1}
+
+.fullbtn{position:absolute;top:14px;right:14px;z-index:8;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:700;cursor:pointer;box-shadow:var(--shadow);display:none}
+.fullbtn.on{display:block}
+.hint{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 16px;font-size:.92rem;color:var(--muted);box-shadow:var(--shadow);z-index:5}
+.dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);width:min(760px,calc(100% - 32px));max-height:48%;overflow-y:auto;display:none;flex-direction:column;gap:10px;z-index:7}
+.dock.on{display:flex}
+.card{position:relative;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 20px;box-shadow:var(--shadow)}
+.card.main{border-top:4px solid var(--lane)}
+.card.lane-c{--lane:var(--c)} .card.lane-g{--lane:var(--g)} .card.lane-s{--lane:var(--s)}
+.card h2{font-size:1.2rem;font-weight:700;padding-right:36px}
+.card p{margin:6px 0 0}
+.meta{display:flex;gap:8px;align-items:center;margin-bottom:6px;font-size:.85rem;color:var(--muted);font-weight:700}
+.chip{padding:2px 10px;border-radius:999px;background:var(--lane);color:var(--lane-ink)}
+.chip.lane-c{--lane:var(--c);--lane-ink:var(--c-ink)} .chip.lane-g{--lane:var(--g);--lane-ink:var(--g-ink)} .chip.lane-s{--lane:var(--s);--lane-ink:var(--s-ink)}
+.close{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:15px;line-height:1}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--bg);font-size:.9rem}
+.fields b{display:block;color:var(--strong)}
+.fields i{font-style:normal;color:var(--muted)}
+.tip{margin-top:10px;padding:8px 12px;border-radius:10px;background:var(--yellow-soft);border-left:4px solid var(--yellow);font-size:.92rem}
+.why{border-left:6px solid var(--cyan);background:var(--surface)}
+.why h3{font-size:1rem;color:var(--strong)}
+.why h3 span{color:var(--cyan)}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--strong);border:2px solid var(--accent)}
+.btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.fb{margin-top:10px;padding:8px 12px;border-radius:10px;font-size:.92rem}
+.fb.bad{background:var(--yellow-soft);border-left:4px solid var(--yellow)}
+.fb.good{background:var(--accent-soft);border-left:4px solid var(--accent)}
+.fb.note{background:var(--cyan-soft);border-left:4px solid var(--cyan)}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bfloat{position:absolute;left:16px;top:14px;right:260px;display:none;gap:10px;align-items:baseline;font-size:.95rem;background:var(--accent-soft);border-left:4px solid var(--accent);border-radius:0 10px 10px 0;padding:8px 14px;z-index:6;color:var(--strong)}
+.bfloat.on{display:flex}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:color-mix(in srgb,var(--bg) 70%,transparent);z-index:9}
+.overlay.on{display:flex}
+.picker{width:min(560px,calc(100% - 32px));max-height:calc(100% - 32px);overflow-y:auto}
+.missions{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.mission{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 12px;cursor:pointer}
+.mission:hover{border-color:var(--accent)}
+.mission .em{font-size:20px}
+.mission b{display:block;color:var(--strong)}
+.mission small{color:var(--muted);font-size:.85rem}
+.done{color:var(--accent);font-weight:700;font-size:.85rem}
+.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:10px}
+.progress div{height:100%;background:var(--accent)}
+.score{font-family:"Sora",sans-serif;font-size:1.6rem;font-weight:700;color:var(--strong)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="title">
+    <h1>🚀 Solicitud de certificado/s</h1>
+    <p>Mapa interactivo del protocolo P001_G_S</p>
+  </div>
+  <div class="tools">
+    <button class="tool" id="fsBtn">⛶ Pantalla completa</button>
+    <div class="tabs" role="tablist" aria-label="Modo">
+      <button role="tab" id="tab-explore" aria-selected="true">Explorar el mapa</button>
+      <button role="tab" id="tab-sim" aria-selected="false">Simular una misión</button>
+    </div>
+  </div>
+</header>
+<main>
+  <section class="map-wrap" id="wrap" aria-label="Mapa del proceso">
+    <div class="map" id="map">
+      <div class="lane-labels" id="laneLabels"></div>
+      <div class="canvas" id="canvas">
+        <svg id="svg" aria-hidden="true"></svg>
+        <div class="rocket" id="rocket">🚀</div>
+      </div>
+    </div>
+    <button class="fullbtn" id="fullBtn">⤢ Ver diagrama completo</button>
+    <div class="bfloat" id="bfloat"></div>
+    <div class="hint" id="hint">Tocá cualquier figura para ver qué hacer en ese paso.</div>
+    <div class="dock" id="dock" aria-live="polite"></div>
+    <div class="overlay" id="overlay"><div class="card picker" id="picker"></div></div>
+  </section>
+</main>
+<script>
+(function(){
+const LANES={c:{name:"Cliente",y0:0,y1:225},g:{name:"Equipo general",y0:225,y1:375},s:{name:"Equipo Soporte",y0:375,y1:770}};
+const ROWY={cm:72,cl:178,g:300,st:452,sm:578,sb:700};
+const LANENAME={c:"Cliente",g:"Equipo general",s:"Equipo Soporte"};
+const X=c=>70+c*134+(c>=4?54:0), W=X(15)+80, H=770, LW=44;
+const TICKET=[
+  ["Canal por el que llegó la solicitud","[Correo, WhatsApp, CRM]"],
+  ["Persona de CD a la que se contactó","[Nombre del Tutor, CS, Triage o Soporte]"],
+  ["Quién lo solicitó","[Docente, Directivo, Coordinador]"],
+  ["Correo de quién lo solicitó",""],
+  ["Para quién es el certificado","[Estudiantes o Docente]"],
+  ["Grado/nivel","Solo si es para estudiantes"],
+  ["Link de la planilla del colegio",""]
+];
+const APP_TIP="Carpeta: Certificados. Contraseña: 2026 (la clave puede cambiar; confirmá la vigente con Soporte).";
+
+// id, lane, row, col, type, label, step, title, desc, extra
+const N=[
+ ["n5","c","cm",0,"start","Llega la solicitud","1","Llega una solicitud de certificados","Un docente, directivo o coordinador pide certificados por cualquier canal: correo, WhatsApp, CRM o incluso durante una capacitación."],
+ ["n7","g","g",1,"task","Cargar ticket “Solicitud de certificados”","2","Cargar el ticket “Solicitud de certificados”","Quien recibe la solicitud (Tutor, CS, Triage o Soporte) carga el ticket con todos estos campos:",{fields:true,tip:"Las opciones entre corchetes son orientativas. Si la solicitud llegó en una capacitación, en el canal podés poner “Videollamada” o “Capacitación”."}],
+ ["n8","s","sm",1,"task","Revisar el ticket","3","Revisar el ticket","Soporte lee el ticket y verifica que tenga todos los datos necesarios."],
+ ["n40","s","sm",2,"dec","¿Ticket completo?","4","¿El ticket está completo?","Si falta algún dato, el ticket no avanza.",{opts:[["Sí","n12"],["No","n41"]]}],
+ ["n41","s","st",2,"task","Devolver ticket a quien lo creó","4.1","Devolver el ticket a quien lo creó","Quien emitió el ticket es el responsable de recibir la solicitud, por eso es quien lo completa."],
+ ["n42","g","g",2,"task","Completar datos y reasignar","4.2","Completar el ticket y reasignarlo","Quien creó el ticket revisa qué falta, completa los datos y lo asigna de nuevo a Soporte."],
+ ["n12","s","sm",3,"dec","¿Para quién es?","5","¿Para quién es el certificado?","La ruta cambia según el destinatario.",{opts:[["Estudiantes","n13"],["Docente","n14"]]}],
+ ["n13","s","sm",4,"task","Buscar en planilla de estudiantes","6.1","Buscar en la planilla de estudiantes","Buscar a los estudiantes del grado indicado en la planilla del colegio."],
+ ["n4","s","sm",5,"dec","¿Están los usuarios?","6.2","¿Están los usuarios en la planilla?","Hay que confirmar que el grado tenga su lista de alumnos cargada.",{opts:[["Sí","n19"],["No","n17"]]}],
+ ["n17","s","st",5,"task","Ticket a Customer responsable","6.3","Pedir el listado a la Customer responsable","Cargar un ticket a la Customer responsable del colegio con la solicitud del listado de estudiantes y el grado/nivel."],
+ ["n27","g","g",5,"task","Revisar el ticket","6.3.1","Revisar el ticket de Soporte","La Customer responsable revisa el pedido de listado."],
+ ["n28","g","g",6,"task","Solicitar el listado","6.3.1","Solicitar el listado al colegio","La Customer responsable le pide al colegio el listado de estudiantes."],
+ ["n29","c","cm",6,"task","Enviar el listado","6.3.2","Enviar el listado","El colegio recibe el pedido y envía el listado de estudiantes."],
+ ["n30","g","g",7,"task","Responder ticket con listado","6.3.3","Responder el ticket con el listado","La Customer responsable responde el ticket de Soporte con el listado adjunto."],
+ ["n31","s","st",7,"task","Cerrar ticket del listado","6.3.4","Cerrar el ticket del listado","Soporte cierra el ticket del listado y sigue con la revisión del formato."],
+ ["n19","s","sm",7,"task","Revisar formato del colegio","6.4","Revisar el formato del colegio","Verificar el grado y el contenido cargado."],
+ ["n15","s","sm",8,"task","Copiar link de planilla","6.5","Copiar el link de la planilla","Copiar el link de la planilla en modo lector."],
+ ["n16","s","sm",9,"task","Ingresar a “Certificados CD”","6.6","Ingresar a la app “Certificados CD”","Abrir la app para generar los certificados.",{tip:APP_TIP}],
+ ["n18","s","sm",10,"task","Generar certificados","6.7","Generar los certificados","Generar en la app los certificados de los estudiantes."],
+ ["n6","s","sm",11,"task","Guardar en drive","6.8","Guardar en el drive","Almacenar los certificados en el drive “Externo Datos Clientes”."],
+ ["n14","s","sb",4,"task","Buscar en planilla de docentes","7.1","Buscar en la planilla de docentes","Buscar al docente en la planilla de docentes del colegio."],
+ ["n39","s","sb",5,"task","Revisar herramientas enseñadas","7.2","Revisar qué herramientas enseñó","Revisar qué herramientas enseñó el docente durante el periodo actual."],
+ ["n36","s","sb",8,"task","Copiar link de planilla","7.3","Copiar el link de la planilla","Copiar el link de la planilla en modo lector."],
+ ["n37","s","sb",9,"task","Ingresar a “Certificados CD”","7.4","Ingresar a la app “Certificados CD”","Abrir la app para generar el certificado.",{tip:APP_TIP}],
+ ["n38","s","sb",10,"task","Generar certificados","7.5","Generar los certificados","Generar en la app el certificado del docente."],
+ ["n35","s","sb",11,"task","Guardar en drive","7.6","Guardar en el drive","Almacenar el certificado en el drive “Externo Datos Clientes”."],
+ ["n21","s","sm",12,"event","Enviar por correo","8","Enviar los certificados por correo","Enviar los certificados al solicitante por correo electrónico. Las dos rutas (estudiantes y docente) terminan acá."],
+ ["n22","s","sm",13,"task","Cerrar ticket","9","Cerrar el ticket","Soporte cierra el ticket “Solicitud de certificados”."],
+ ["n9","s","sm",14,"end","Fin para Soporte","","Fin del proceso para Soporte","El trabajo de Soporte termina acá. Del lado del colegio, la revisión continúa."],
+ ["n23","c","cm",12,"task","Recibir certificados","10","Recibir los certificados","El solicitante recibe el correo con los certificados."],
+ ["n24","c","cm",13,"task","Revisar certificados","10","Revisar los certificados","El solicitante controla que estén todos los que pidió."],
+ ["n25","c","cm",14,"dec","¿Están todos?","11","¿Están todos los certificados solicitados?","El colegio confirma si recibió todo lo que pidió.",{opts:[["Sí","n10"],["No","n32"]]}],
+ ["n10","c","cm",15,"end","Fin: cliente conforme","","Fin: cliente conforme","El colegio recibió todos los certificados que pidió."],
+ ["n32","c","cl",14,"task","Avisar a Creativos","11.1","Avisar a Creativos Digitales","El colegio avisa que falta algún certificado."],
+ ["n33","g","g",14,"task","Cargar ticket “Error Soporte”","11.2","Cargar el ticket “Error Soporte”","Quien recibe el aviso carga el ticket “Error Soporte”."],
+ ["n34","s","st",15,"end","Indagar el error","","Se abre un proceso para indagar el error","Se investiga qué falló para afinar este protocolo."]
+].map(a=>({id:a[0],lane:a[1],row:a[2],col:a[3],type:a[4],label:a[5],step:a[6],title:a[7],desc:a[8],extra:a[9]||{}}));
+const byId=Object.fromEntries(N.map(n=>[n.id,n]));
+N.forEach(n=>{n.x=X(n.col);n.y=ROWY[n.row];
+  const ev=["start","end","event"].includes(n.type);
+  n.w=ev?50:n.type==="dec"?104:118; n.h=ev?50:n.type==="dec"?104:84;
+  n.hw=ev?25:n.type==="dec"?48:59; n.hh=ev?25:n.type==="dec"?48:42;
+});
+
+const E=[
+ ["n5","n7","h"],["n7","n8","v"],["n8","n40","h"],["n40","n41","v","No"],["n41","n42","v"],["n42","n7","h"],
+ ["n40","n12","h","Sí"],["n12","n13","h","Estudiantes"],["n12","n14","v","Docente"],["n13","n4","h"],
+ ["n4","n17","v","No"],["n17","n27","v"],["n27","n28","h"],["n28","n29","v",0,1],["n29","n30","h",0,1],
+ ["n30","n31","v"],["n31","n19","v"],["n4","n19","h","Sí"],["n19","n15","h"],["n15","n16","h"],["n16","n18","h"],
+ ["n18","n6","h"],["n6","n21","h"],["n21","n22","h"],["n22","n9","h"],["n14","n39","h"],["n39","n36","h"],
+ ["n36","n37","h"],["n37","n38","h"],["n38","n35","h"],["n35","n21","h"],["n21","n23","v",0,1],
+ ["n23","n24","h"],["n24","n25","h"],["n25","n10","h","Sí"],["n25","n32","v","No"],["n32","n33","v",0,1],["n33","n34","h"]
+].map(a=>({from:a[0],to:a[1],route:a[2],label:a[3]||"",dash:!!a[4],key:a[0]+">"+a[1]}));
+
+const WHY={
+ n40:["Si la respuesta es “No”","Soporte devuelve el ticket a quien lo creó. Sin todos los datos no se pueden generar los certificados correctos, y quien recibió la solicitud es el responsable de completarla."],
+ n12:["Si es para un docente","Se sigue la ruta de docentes: se busca en la planilla de docentes y, antes de generar el certificado, se revisa qué herramientas enseñó durante el periodo actual."],
+ n4:["Si la respuesta es “No”","Soporte carga un ticket a la Customer responsable del colegio. Sin la lista de alumnos no se pueden generar los certificados, y la Customer es quien tiene el contacto con el colegio para pedirla."],
+ n25:["Si la respuesta es “No”","El colegio avisa a Creativos y se carga el ticket “Error Soporte”. Un certificado faltante indica una falla, así que se abre una investigación para encontrar la causa y afinar este protocolo."]
+};
+// ---------- draw ----------
+const svgNS="http://www.w3.org/2000/svg";
+const $=id=>document.getElementById(id);
+const svg=$("svg"),canvas=$("canvas"),wrap=$("wrap"),mapEl=$("map"),dock=$("dock"),bfloat=$("bfloat"),hint=$("hint"),fullBtn=$("fullBtn"),overlay=$("overlay"),picker=$("picker"),rocket=$("rocket");
+canvas.style.width=W+"px"; canvas.style.height=H+"px";
+svg.setAttribute("width",W); svg.setAttribute("height",H); svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+const el=(t,attrs,parent)=>{const e=document.createElementNS(svgNS,t);for(const k in attrs)e.setAttribute(k,attrs[k]);(parent||svg).appendChild(e);return e;};
+const defs=el("defs",{});
+[["n","mk-n"],["h","mk-h"],["t","mk-t"]].forEach(([k,c])=>{const m=el("marker",{id:"ar-"+k,viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"7",markerHeight:"7",orient:"auto-start-reverse"},defs);el("path",{d:"M0,0 L10,5 L0,10 z",class:c},m);});
+const labelsCol=$("laneLabels"); labelsCol.style.height=H+"px";
+Object.entries(LANES).forEach(([k,l])=>{
+  el("rect",{x:0,y:l.y0,width:W,height:l.y1-l.y0,class:"lane-bg-"+k});
+  if(l.y0>0) el("line",{x1:0,x2:W,y1:l.y0,y2:l.y0,class:"lane-sep"});
+  const d=document.createElement("div"); d.textContent=l.name; d.style.height=(l.y1-l.y0)+"px"; d.style.setProperty("--lc",`var(--${k})`); labelsCol.appendChild(d);
+});
+const gEdges=el("g",{});
+E.forEach(e=>{
+  const a=byId[e.from], b=byId[e.to]; let pts;
+  if(Math.abs(a.y-b.y)<1){const s=Math.sign(b.x-a.x); pts=[[a.x+s*a.hw,a.y],[b.x-s*b.hw,b.y]];}
+  else if(Math.abs(a.x-b.x)<1){const s=Math.sign(b.y-a.y); pts=[[a.x,a.y+s*a.hh],[b.x,b.y-s*b.hh]];}
+  else if(e.route==="h"){const s=Math.sign(b.x-a.x),t=Math.sign(b.y-a.y); pts=[[a.x+s*a.hw,a.y],[b.x,a.y],[b.x,b.y-t*b.hh]];}
+  else {const t=Math.sign(b.y-a.y),s=Math.sign(b.x-a.x); pts=[[a.x,a.y+t*a.hh],[a.x,b.y],[b.x-s*b.hw,b.y]];}
+  e.path=el("path",{d:"M"+pts.map(p=>p.join(",")).join(" L"),class:"edge"+(e.dash?" dash":""),"marker-end":"url(#ar-n)"},gEdges);
+  if(e.label){const p0=pts[0],p1=pts[1],horiz=Math.abs(p1[1]-p0[1])<1;
+    const tx=horiz?p0[0]+(p1[0]>p0[0]?5:-5):p0[0]+7, ty=horiz?p0[1]-8:(p0[1]+p1[1])/2+5;
+    const t=el("text",{x:tx,y:ty,class:"elabel","text-anchor":horiz&&p1[0]<p0[0]?"end":"start"},gEdges); t.textContent=e.label;}
+});
+const icons={start:"🛰️",end:"🏁",event:"✉️"};
+N.forEach(n=>{
+  const b=document.createElement("button"), ev=["start","end","event"].includes(n.type);
+  b.className=`node lane-${n.lane} ${n.type==="dec"?"dec":""} ${ev?"ev":""} ${n.type==="end"?"end":""}`;
+  b.style.left=(n.x-n.w/2)+"px"; b.style.top=(n.y-n.h/2)+"px"; b.style.width=n.w+"px"; b.style.height=n.h+"px";
+  b.setAttribute("aria-label",(n.step?"Paso "+n.step+": ":"")+n.title+". "+LANENAME[n.lane]);
+  b.innerHTML=ev?`<span class="box">${icons[n.type]}</span><span class="cap">${n.label}</span>`:`<span class="box"><span>${n.label}</span></span>${n.step?`<span class="num">${n.step}</span>`:""}`;
+  b.addEventListener("click",ev2=>{ev2.stopPropagation(); if(mode==="explore") select(n.id);});
+  canvas.appendChild(b); n.btn=b;
+});
+
+// ---------- view / zoom ----------
+let view={focus:null};
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function applyView(){
+  const cw=wrap.clientWidth, ch=wrap.clientHeight, tw=W+LW, pad=16;
+  const top=bfloat.classList.contains("on")?bfloat.offsetHeight+24:0;
+  const k0=Math.min((cw-pad*2)/tw,(ch-pad*2-top)/H);
+  let k,ox,oy;
+  if(!view.focus){
+    k=k0; ox=(cw-tw*k)/2; oy=pad+top+(ch-pad*2-top-H*k)/2;
+  } else {
+    const n=byId[view.focus];
+    k=Math.max(k0,Math.min(1.25,Math.max(k0*2.2,.9)));
+    const bottom=ch-(dock.classList.contains("on")?dock.offsetHeight+28:pad);
+    const cy=(top+pad+bottom)/2;
+    ox=cw/2-(LW+n.x)*k; oy=cy-n.y*k;
+    if(tw*k>cw) ox=Math.min(pad,Math.max(cw-tw*k-pad,ox)); else ox=(cw-tw*k)/2;
+  }
+  mapEl.style.transform=`translate(${ox}px,${oy}px) scale(${k})`;
+  fullBtn.classList.toggle("on",!!view.focus);
+}
+new ResizeObserver(()=>applyView()).observe(wrap);
+function focusOn(id){view.focus=id; requestAnimationFrame(applyView);}
+function showAll(){view.focus=null; requestAnimationFrame(applyView);}
+fullBtn.onclick=()=>{ if(mode==="explore") closeSel(); else showAll(); };
+
+// ---------- shared ----------
+let mode="explore", selected=null, sim=null;
+let doneSet=new Set(); try{doneSet=new Set(JSON.parse(localStorage.getItem("cd-cert-done")||"[]"));}catch(e){}
+const saveDone=()=>{try{localStorage.setItem("cd-cert-done",JSON.stringify([...doneSet]));}catch(e){}};
+function setEdge(e,cls){e.path.classList.add(cls);e.path.setAttribute("marker-end",`url(#ar-${cls==="hl"?"h":"t"})`);}
+function clearMarks(){E.forEach(e=>{e.path.classList.remove("hl","trail");e.path.setAttribute("marker-end","url(#ar-n)")});N.forEach(n=>n.btn.classList.remove("sel","rel","visited"));canvas.classList.remove("dim");}
+function mainCard(n,closeLabel){
+  const ex=n.extra;
+  let h=`<div class="card main lane-${n.lane}"><button class="close" data-close aria-label="${closeLabel}">✕</button>
+  <div class="meta"><span class="chip lane-${n.lane}">${LANENAME[n.lane]}</span>${n.step?`<span>Paso ${n.step}</span>`:""}</div>
+  <h2>${n.title}</h2><p>${n.desc}</p>`;
+  if(ex.fields) h+=`<div class="fields">${TICKET.map(([k,v])=>`<div><b>${k}</b>${v?`<i>${v}</i>`:""}</div>`).join("")}</div>`;
+  if(ex.tip) h+=`<div class="tip">${ex.tip}</div>`;
+  return h;
+}
+function setDock(html){
+  dock.innerHTML=html; dock.classList.toggle("on",!!html); dock.scrollTop=0;
+  hint.style.display=(!html&&mode==="explore")?"":"none";
+  const c=dock.querySelector("[data-close]"); if(c) c.onclick=()=>{ if(mode==="explore") closeSel(); else exitSim(); };
+}
+
+// ---------- explore ----------
+function select(id){
+  clearMarks(); selected=id; const n=byId[id];
+  canvas.classList.add("dim"); n.btn.classList.add("sel");
+  E.forEach(e=>{if(e.from===id||e.to===id){setEdge(e,"hl");byId[e.from===id?e.to:e.from].btn.classList.add("rel");}});
+  let h=mainCard(n,"Cerrar y ver el diagrama completo")+`</div>`;
+  if(WHY[id]) h+=`<div class="card why"><h3><span>↳</span> ${WHY[id][0]}</h3><p>${WHY[id][1]}</p></div>`;
+  setDock(h); focusOn(id);
+}
+function closeSel(){selected=null;clearMarks();setDock("");showAll();}
+wrap.addEventListener("click",e=>{ if(mode==="explore"&&selected&&!e.target.closest(".node,.dock,.fullbtn")) closeSel(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if(mode==="explore"&&selected) closeSel(); else if(view.focus) showAll(); }});
+
+// ---------- simulation ----------
+const MISSIONS=[
+ {id:"m1",em:"🚀",t:"Misión estándar",s:"Todo en orden, para estudiantes",brief:"La directora de un colegio pide por correo los certificados de 5° grado. El ticket tiene todos los datos y los alumnos están en la planilla. Al final, el colegio recibe todo.",ans:{n40:["Sí"],n12:["Estudiantes"],n4:["Sí"],n25:["Sí"]}},
+ {id:"m2",em:"🛰️",t:"Ticket con datos faltantes",s:"Un ticket que vuelve a quien lo creó",brief:"Un tutor cargó el ticket de una docente, pero se olvidó del link de la planilla del colegio. Una vez corregido, todo sale bien.",ans:{n40:["No","Sí"],n12:["Docente"],n25:["Sí"]}},
+ {id:"m3",em:"🪐",t:"Grado sin lista de alumnos",s:"Hay que pedir el listado",brief:"Un coordinador pide certificados para 2° año. El ticket está completo, pero ese grado no tiene alumnos cargados en la planilla. Después de conseguir el listado, el colegio recibe todo.",ans:{n40:["Sí"],n12:["Estudiantes"],n4:["No"],n25:["Sí"]}},
+ {id:"m4",em:"👩‍🚀",t:"Certificado para docente",s:"La ruta de docentes",brief:"Una docente pide su certificado durante una capacitación por videollamada. El ticket está completo y el certificado le llega sin problemas.",ans:{n40:["Sí"],n12:["Docente"],n25:["Sí"]}},
+ {id:"m5",em:"☄️",t:"Falta un certificado",s:"Qué hacer cuando algo falla",brief:"El ticket estaba completo y los alumnos de 6° grado estaban en la planilla. Pero al revisar los certificados, el colegio nota que falta el de un alumno.",ans:{n40:["Sí"],n12:["Estudiantes"],n4:["Sí"],n25:["No"]}},
+ {id:"free",em:"🌌",t:"Vuelo libre",s:"Elegí vos cada camino, sin evaluación",brief:"Recorré el protocolo tomando las decisiones que quieras para ver a dónde lleva cada camino.",ans:null}
+];
+const HINTS={n40:"Releé la misión: ¿el ticket tiene todos los campos?",n12:"¿El certificado es para alumnos o para un docente?",n4:"¿El grado tiene su lista de alumnos cargada en la planilla?",n25:"¿El colegio recibió todos los certificados que pidió?"};
+const SIMNEXT={n21:"n22",n22:"n9",n9:"n23"};
+const TERMINAL=new Set(["n10","n34"]);
+
+function showPicker(){
+  const total=MISSIONS.filter(m=>m.ans).length, done=MISSIONS.filter(m=>m.ans&&doneSet.has(m.id)).length;
+  picker.innerHTML=`<h2>Elegí una misión</h2><p>Cada misión es un caso real. Seguí el recorrido y, en cada decisión, elegí el camino correcto.</p>
+  <div class="progress"><div style="width:${done/total*100}%"></div></div><p style="font-size:.85rem;color:var(--muted)">${done} de ${total} misiones completadas</p>
+  <div class="missions">${MISSIONS.map(m=>`<button class="mission" data-m="${m.id}"><span class="em">${m.em}</span><span><b>${m.t}</b><small>${m.s}</small></span>${doneSet.has(m.id)?'<span class="done">Hecha ✓</span>':""}</button>`).join("")}</div>`;
+  picker.querySelectorAll("[data-m]").forEach(b=>b.onclick=()=>startMission(MISSIONS.find(m=>m.id===b.dataset.m)));
+  overlay.classList.add("on"); setDock(""); bfloat.classList.remove("on"); showAll();
+  const f=picker.querySelector(".mission"); if(f) f.focus({preventScroll:true});
+}
+function startMission(m){
+  overlay.classList.remove("on"); clearMarks(); canvas.classList.add("dim");
+  sim={m,cur:null,count:{},decisions:0,firstTry:0,wrongHere:false,fb:null};
+  bfloat.innerHTML=`<b style="white-space:nowrap">${m.em} ${m.t}</b><span>${m.brief}</span>`; bfloat.classList.add("on");
+  moveTo("n5",null); renderSim();
+}
+function moveTo(id,from){
+  const n=byId[id];
+  if(from){const e=E.find(e=>e.from===(from==="n9"?"n21":from)&&e.to===id); if(e) setEdge(e,"trail"); byId[from].btn.classList.add("visited");}
+  N.forEach(x=>x.btn.classList.remove("sel")); n.btn.classList.add("sel");
+  sim.cur=id; rocket.classList.add("on"); rocket.style.transform=`translate(${n.x+n.hw-16}px,${n.y-n.hh-36}px)`;
+}
+function advance(to,fb){
+  const from=sim.cur; sim.fb=fb||null; sim.wrongHere=false;
+  if(from==="n9") sim.fb={k:"note",t:"🌍 Mientras tanto, del lado del colegio…"};
+  moveTo(to,from); renderSim();
+}
+function choose(label,to){
+  const n=byId[sim.cur], m=sim.m;
+  if(m.ans){
+    const list=m.ans[n.id]||[], i=sim.count[n.id]||0, exp=list[Math.min(i,list.length-1)];
+    if(label!==exp){ if(!sim.wrongHere) sim.decisions++; sim.wrongHere=true; sim.fb={k:"bad",t:`Esa no es la ruta de esta misión. ${HINTS[n.id]}`}; renderSim(true); return; }
+    if(!sim.wrongHere){sim.decisions++;sim.firstTry++;}
+    sim.count[n.id]=i+1; advance(to,{k:"good",t:"✅ ¡Bien! Esa es la ruta correcta."});
+  } else advance(to);
+}
+function renderSim(shake){
+  const n=byId[sim.cur], m=sim.m; let h="";
+  if(sim.fb) h+=`<div class="fb ${sim.fb.k}" style="margin:0 40px 10px 0">${sim.fb.t}</div>`;
+  let body=mainCard(n,"Salir de la misión");
+  body=body.replace(`<div class="card main lane-${n.lane}">`,`<div class="card main lane-${n.lane}">${h}`);
+  let act="";
+  if(TERMINAL.has(n.id)){
+    if(m.ans){doneSet.add(m.id);saveDone();}
+    const ok=n.id==="n10";
+    act=`<div class="fb ${ok?"good":"note"}"><b>${ok?"🏁 ¡Misión cumplida!":"🛸 Fin del recorrido: el caso pasa al nuevo proceso para indagar el error."}</b>${m.ans?` Decisiones correctas a la primera: <span class="score">${sim.firstTry} de ${sim.decisions}</span>`:""}</div>
+    <div class="btn-row"><button class="btn" data-a="again">Elegir otra misión</button><button class="btn ghost" data-a="repeat">Repetir esta</button></div>`;
+  } else if(n.type==="dec"){
+    act=`<div class="btn-row ${shake?"shake":""}">${n.extra.opts.map(([l,to])=>`<button class="btn ghost" data-a="opt" data-l="${l}" data-to="${to}">${l}</button>`).join("")}</div>`;
+  } else {
+    act=`<div class="btn-row"><button class="btn" data-a="next" data-to="${SIMNEXT[n.id]||E.find(e=>e.from===n.id).to}">Siguiente paso</button></div>`;
+  }
+  setDock(body+act+`</div>`);
+  dock.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{
+    const a=b.dataset.a;
+    if(a==="next") advance(b.dataset.to); else if(a==="opt") choose(b.dataset.l,b.dataset.to);
+    else if(a==="again") showPicker(); else if(a==="repeat") startMission(m);
+  });
+  const f=dock.querySelector("[data-a]"); if(f&&!shake) f.focus({preventScroll:true});
+  focusOn(n.id);
+}
+function exitSim(){sim=null;clearMarks();rocket.classList.remove("on");showPicker();}
+
+// ---------- modes ----------
+function setMode(m){
+  mode=m; selected=null; sim=null;
+  $("tab-explore").setAttribute("aria-selected",m==="explore"); $("tab-sim").setAttribute("aria-selected",m==="sim");
+  canvas.classList.toggle("sim",m==="sim"); clearMarks(); rocket.classList.remove("on"); bfloat.classList.remove("on");
+  overlay.classList.remove("on"); setDock(""); showAll();
+  if(m==="sim") showPicker();
+  const h="#"+(m==="sim"?"simular":"explorar"); if(location.hash!==h) history.replaceState(null,"",h);
+}
+$("tab-explore").onclick=()=>setMode("explore");
+$("tab-sim").onclick=()=>setMode("sim");
+overlay.addEventListener("click",e=>{ if(e.target===overlay) setMode("explore"); });
+window.addEventListener("hashchange",()=>setMode(location.hash==="#simular"?"sim":"explore"));
+const fsBtn=$("fsBtn");
+function setFullUi(on){document.body.classList.toggle("full",on);fsBtn.textContent=on?"✕ Salir de pantalla completa":"⛶ Pantalla completa";}
+fsBtn.onclick=()=>{
+  if(!document.body.classList.contains("full")){ setFullUi(true); if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}); }
+  else { if(document.fullscreenElement) document.exitFullscreen().catch(()=>{}); setFullUi(false); }
+};
+document.addEventListener("fullscreenchange",()=>{ if(!document.fullscreenElement) setFullUi(false); });
+setMode(location.hash==="#simular"?"sim":"explore");
+})();
+</script>
+</body>
+</html>
